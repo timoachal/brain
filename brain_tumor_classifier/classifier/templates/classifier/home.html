@@ -1,0 +1,417 @@
+{% extends 'classifier/base.html' %}
+{% load static %}
+
+{% block title %}NeuroClassifier - AI Brain Tumor Detection{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="hero-content">
+                    <h1 class="hero-title">Advanced Brain Tumor Detection</h1>
+                    <p class="hero-subtitle">
+                        Harness the power of artificial intelligence to detect brain tumors with precision. 
+                        Upload your brain scan and get instant AI-powered analysis with Grad-CAM visualization.
+                    </p>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <button class="btn btn-light btn-lg" onclick="scrollToUpload()">
+                            <i class="fas fa-upload me-2"></i>Start Analysis
+                        </button>
+                        <a href="{% url 'classifier:scan_history' %}" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-history me-2"></i>View History
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <img src="{% static 'images/brain_scan_sample_1.jpg' %}" alt="Brain Scan Sample" 
+                         class="img-fluid rounded-3 shadow-lg" style="max-height: 400px;">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-12">
+                <h2 class="text-gradient fw-bold mb-3">Cutting-Edge AI Technology</h2>
+                <p class="lead text-muted">Experience the future of medical imaging analysis</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">AI Classification</h4>
+                    <p class="text-muted">Advanced deep learning models trained on thousands of brain scans for accurate tumor detection.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Grad-CAM Visualization</h4>
+                    <p class="text-muted">See exactly where the AI focuses its attention with heat map overlays highlighting potential tumor regions.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Instant Results</h4>
+                    <p class="text-muted">Get immediate analysis results with confidence scores and detailed visualizations in seconds.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Upload Section -->
+<section class="py-5 bg-light" id="upload-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-custom">
+                    <div class="card-header text-center">
+                        <h3 class="mb-0">
+                            <i class="fas fa-upload me-2"></i>
+                            Upload Brain Scan
+                        </h3>
+                        <p class="mb-0 mt-2 opacity-75">Supported formats: JPG, PNG, BMP</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <h4 class="fw-bold mb-3">Drop your brain scan here</h4>
+                                <p class="text-muted mb-3">or click to browse files</p>
+                                <input type="file" id="imageInput" name="image" accept="image/*" class="d-none">
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('imageInput').click()">
+                                    <i class="fas fa-folder-open me-2"></i>Choose File
+                                </button>
+                            </div>
+                            
+                            <div id="imagePreview" class="mt-4 d-none">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="image-container">
+                                            <img id="previewImage" src="" alt="Preview" class="scan-image">
+                                            <div class="image-overlay">
+                                                <i class="fas fa-search-plus fa-2x"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex flex-column h-100 justify-content-center">
+                                            <h5 class="fw-bold mb-3">Ready for Analysis</h5>
+                                            <p class="text-muted mb-4">Your brain scan has been loaded and is ready for AI analysis.</p>
+                                            <button type="submit" class="btn btn-success btn-lg">
+                                                <i class="fas fa-magic me-2"></i>Analyze Scan
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                        
+                        <!-- Loading State -->
+                        <div id="loadingState" class="text-center py-5 d-none">
+                            <div class="spinner mb-3"></div>
+                            <h5 class="fw-bold">Analyzing Brain Scan...</h5>
+                            <p class="text-muted">Our AI is processing your image. This may take a few moments.</p>
+                        </div>
+                        
+                        <!-- Results -->
+                        <div id="resultsSection" class="mt-4 d-none">
+                            <div class="result-card card">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h5 class="fw-bold mb-3">
+                                                <i class="fas fa-chart-line me-2"></i>Analysis Results
+                                            </h5>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Prediction:</label>
+                                                <div id="predictionResult" class="fs-5 fw-bold"></div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Confidence:</label>
+                                                <div class="confidence-bar mb-2">
+                                                    <div id="confidenceBar" class="confidence-fill" style="width: 0%"></div>
+                                                </div>
+                                                <div id="confidenceText" class="fw-bold"></div>
+                                            </div>
+                                            <button id="generateGradcam" class="btn btn-warning">
+                                                <i class="fas fa-fire me-2"></i>Generate Grad-CAM
+                                            </button>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div id="gradcamSection" class="d-none">
+                                                <h6 class="fw-bold mb-3">Grad-CAM Visualization</h6>
+                                                <div class="image-container">
+                                                    <img id="gradcamImage" src="" alt="Grad-CAM" class="scan-image">
+                                                </div>
+                                                <p class="text-muted mt-2 small">
+                                                    Heat map shows areas of focus for the AI model's decision.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Recent Scans -->
+{% if recent_scans %}
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h3 class="text-gradient fw-bold mb-4">
+                    <i class="fas fa-history me-2"></i>Recent Scans
+                </h3>
+                <div class="row g-4">
+                    {% for scan in recent_scans %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100">
+                            <div class="image-container">
+                                <img src="{{ scan.image.url }}" alt="Brain Scan" class="scan-image" style="height: 200px; object-fit: cover;">
+                                <div class="image-overlay">
+                                    <a href="{% url 'classifier:scan_detail' scan.id %}" class="btn btn-light">
+                                        <i class="fas fa-eye me-2"></i>View Details
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="text-muted">{{ scan.uploaded_at|date:"M d, Y H:i" }}</small>
+                                    {% if scan.prediction %}
+                                        <span class="badge {% if 'Tumor' in scan.prediction %}badge-tumor{% else %}badge-no-tumor{% endif %}">
+                                            {{ scan.prediction }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                {% if scan.confidence %}
+                                    <div class="confidence-bar mb-2">
+                                        <div class="confidence-fill" style="width: {{ scan.confidence|floatformat:0 }}%"></div>
+                                    </div>
+                                    <small class="text-muted">Confidence: {{ scan.confidence|floatformat:1 }}%</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-4">
+                    <a href="{% url 'classifier:scan_history' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-2"></i>View All Scans
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scroll to upload section
+function scrollToUpload() {
+    document.getElementById('upload-section').scrollIntoView({ 
+        behavior: 'smooth' 
+    });
+}
+
+// File upload handling
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const uploadForm = document.getElementById('uploadForm');
+    const loadingState = document.getElementById('loadingState');
+    const resultsSection = document.getElementById('resultsSection');
+    
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    });
+    
+    // Click to upload
+    uploadArea.addEventListener('click', function() {
+        imageInput.click();
+    });
+    
+    imageInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+    
+    function handleFileSelect(file) {
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                imagePreview.classList.remove('d-none');
+                uploadArea.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    // Form submission
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        const file = imageInput.files[0];
+        
+        if (!file) {
+            alert('Please select an image file.');
+            return;
+        }
+        
+        formData.append('image', file);
+        
+        // Show loading state
+        imagePreview.classList.add('d-none');
+        loadingState.classList.remove('d-none');
+        resultsSection.classList.add('d-none');
+        
+        // Submit to server
+        fetch('{% url "classifier:upload_and_predict" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingState.classList.add('d-none');
+            
+            if (data.success) {
+                displayResults(data);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error occurred'));
+                imagePreview.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loadingState.classList.add('d-none');
+            alert('An error occurred while processing your request.');
+            imagePreview.classList.remove('d-none');
+        });
+    });
+    
+    function displayResults(data) {
+        // Update prediction result
+        const predictionElement = document.getElementById('predictionResult');
+        predictionElement.textContent = data.prediction;
+        predictionElement.className = data.prediction.includes('Tumor') ? 'text-danger' : 'text-success';
+        
+        // Update confidence
+        const confidenceBar = document.getElementById('confidenceBar');
+        const confidenceText = document.getElementById('confidenceText');
+        confidenceBar.style.width = data.confidence + '%';
+        confidenceText.textContent = data.confidence + '%';
+        
+        // Update result card class
+        const resultCard = document.querySelector('.result-card');
+        resultCard.className = 'result-card card ' + (data.prediction.includes('Tumor') ? 'result-positive' : 'result-negative');
+        
+        // Setup Grad-CAM button
+        const gradcamBtn = document.getElementById('generateGradcam');
+        gradcamBtn.onclick = function() {
+            generateGradcam(data.scan_id);
+        };
+        
+        resultsSection.classList.remove('d-none');
+    }
+    
+    function generateGradcam(scanId) {
+        const gradcamBtn = document.getElementById('generateGradcam');
+        const gradcamSection = document.getElementById('gradcamSection');
+        
+        gradcamBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+        gradcamBtn.disabled = true;
+        
+        fetch(`/gradcam/${scanId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('gradcamImage').src = data.gradcam_url;
+                gradcamSection.classList.remove('d-none');
+                gradcamBtn.innerHTML = '<i class="fas fa-check me-2"></i>Generated';
+                gradcamBtn.classList.remove('btn-warning');
+                gradcamBtn.classList.add('btn-success');
+            } else {
+                alert('Error generating Grad-CAM: ' + data.error);
+                gradcamBtn.innerHTML = '<i class="fas fa-fire me-2"></i>Generate Grad-CAM';
+                gradcamBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while generating Grad-CAM.');
+            gradcamBtn.innerHTML = '<i class="fas fa-fire me-2"></i>Generate Grad-CAM';
+            gradcamBtn.disabled = false;
+        });
+    }
+    
+    // CSRF token helper
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
+
